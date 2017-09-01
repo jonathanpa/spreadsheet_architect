@@ -302,6 +302,33 @@ See this example: https://github.com/westonganger/spreadsheet_architect/blob/mas
 # Axlsx Style Reference
 I have compiled a list of all available style options for axlsx here: https://github.com/westonganger/spreadsheet_architect/blob/master/docs/axlsx_style_reference.md
 
+# Parallel (Experimental)
+I have attempted to integrate the parallel gem into this to speedup generation of spreadsheets with a crap ton of rows. It currently seems to be quite error prone (if you've used the parallel gem before you'll know why). Because of that, I am not sure it will make it into master however I have added it to the parallel branch for people to play with.
+
+It is not a dependency of the gem so you will have to add it to your Gemfile
+
+```ruby
+gem 'parallel'
+gem 'spreadsheet_architect'
+```
+
+You can use the `parallel` option if you want to opt in to this feature. Ex.
+
+```ruby
+Post.to_xlsx(parallel: true)
+```
+
+If you want to customize the number of processes or threads you can use the same options Parallel supports. Ex.
+
+```ruby
+Post.to_xlsx(parallel: {in_threads: 4})
+```
+
+If your model is an ActiveRecord model you will most likely need to call the following database connection reconnect method. See parallel gem readme for more details.
+
+```
+Post.connection.reconnect!
+```
 
 # Credits
 Created by [@westonganger](https://github.com/westonganger)

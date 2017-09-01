@@ -70,8 +70,7 @@ module SpreadsheetArchitect
           raise SpreadsheetArchitect::Exceptions::SpreadsheetColumnsNotDefinedError, klass
         end
 
-        data = []
-        options[:instances].each do |instance|
+        row_block = ::Proc.new do |instance|
           if has_custom_columns && !options[:spreadsheet_columns]
             row_data = []
             instance.spreadsheet_columns.each do |x|
@@ -81,10 +80,18 @@ module SpreadsheetArchitect
                 row_data.push(x.is_a?(Symbol) ? instance.instance_eval(x.to_s) : x)
               end
             end
-            data.push row_data
+
+            next row_data
           else
-            data.push columns.map{|col| col.is_a?(Symbol) ? instance.instance_eval(col.to_s) : col}
+            next columns.map{|col| col.is_a?(Symbol) ? instance.instance_eval(col.to_s) : col}
           end
+        end
+
+        if options[:parallel]
+          require 'parallel'
+          data = Parallel.map(options[:instances], &row_block)
+        else
+          data = options[:instances].map(&row_block)
         end
       end
 

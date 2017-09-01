@@ -46,7 +46,7 @@ module SpreadsheetArchitect
 
         row_style_index = package.workbook.styles.add_style(row_style)
 
-        options[:data].each do |row_data|
+        row_block = Proc.new do |row_data|
           missing = max_row_length - row_data.count
           if missing > 0
             missing.times do
@@ -67,7 +67,20 @@ module SpreadsheetArchitect
             end
           end
 
-          sheet.add_row row_data, style: row_style_index, types: types
+          if options[:parallel]
+            next [row_data, row_style_index, types]
+          else
+            sheet.add_row row_data, style: row_style_index, types: types
+          end
+        end
+
+        if options[:parallel]
+          rows = Parallel.map(options[:data], &row_block)
+          rows.each do |x|
+            sheet.add_row x[0], style: x[1], types: x[2]
+          end
+        else
+          options[:data].each(&row_block)
         end
 
         options[:data].first.each_with_index do |x,i|
