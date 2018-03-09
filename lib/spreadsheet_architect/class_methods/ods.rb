@@ -14,6 +14,38 @@ module SpreadsheetArchitect
         spreadsheet = RODF::Spreadsheet.new
       end
 
+      spreadsheet.data_style :date_format, :date do
+        section :year, style: "YYYY"
+        section :text, textual: "-"
+        section :month, style: "MM"
+        section :text, textual: "-"
+        section :day, style: "DD"
+      end
+
+      spreadsheet.data_style :datetime_format, :date do
+        section :year, style: "YYYY"
+        section :text, textual: "-"
+        section :month, style: "MM"
+        section :text, textual: "-"
+        section :day, style: "DD"
+
+        section :text, textual: " "
+
+        section :hours, style: "HH"
+        section :text, textual: ":"
+        section :minutes, style: "MM"
+        section :text, textual: ":"
+        section :seconds, style: "SS"
+      end
+
+      spreadsheet.data_style :time_format, :date do
+        section :hours, style: "HH"
+        section :text, textual: ":"
+        section :minutes, style: "MM"
+        section :text, textual: ":"
+        section :seconds, style: "SS"
+      end
+
       spreadsheet.office_style :header_style, family: :cell do
         if options[:header_style]
           SpreadsheetArchitect::Utils.convert_styles_to_ods(options[:header_style]).each do |prop, styles|
@@ -24,9 +56,19 @@ module SpreadsheetArchitect
         end
       end
 
+      ods_row_styles = options[:row_style] ? SpreadsheetArchitect::Utils.convert_styles_to_ods(options[:row_style]) : {}
+
       spreadsheet.office_style :row_style, family: :cell do
-        if options[:row_style]
-          SpreadsheetArchitect::Utils.convert_styles_to_ods(options[:row_style]).each do |prop, styles|
+        ods_row_styles.each do |prop, styles|
+          styles.each do |k,v|
+            property prop.to_sym, k => v
+          end
+        end
+      end
+
+      [:date, :datetime, :time].each do |wut|
+        spreadsheet.office_style "row_style_with_#{wut}", family: :cell, data_style: "#{wut}_format" do
+          ods_row_styles.each do |prop, styles|
             styles.each do |k,v|
               property prop.to_sym, k => v
             end
@@ -47,8 +89,26 @@ module SpreadsheetArchitect
 
         options[:data].each_with_index do |row_data, index|
           row do 
-            row_data.each_with_index do |y,i|
-              cell y, style: :row_style, type: (options[:types][i] if options[:types])
+            row_data.each_with_index do |v,i|
+              if options[:types]
+                type = options[:types][i]
+
+                if y.respond_to?(:strftime)
+                  case type
+                  when :date
+                    v = v.strftime("%Y-%m-%d")
+                    s = "date_row_style"
+                  when :datetime
+                    v = v.strftime("%Y-%m-%d %H:%M:%S")
+                    s = "datetime_row_style"
+                  when :time
+                    v = v.strftime("%H:%M:%S")
+                    s = "time_row_style"
+                  end
+                end
+              end
+
+              cell v, style: (s || :row_style), type: type
             end
           end
         end
